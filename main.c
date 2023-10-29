@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
     // Get source file from command line args
     if (argc < 2) {
         puts("Error! Expected path to source file as command line argument.");
-        exit(EX_USAGE);
+        return EX_USAGE;
     }
 
     const char* pathToSource = argv[1];
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
     // Check the source file is valid brainfuck code
     if (!checkSourceFileValidity(&sourceFile)) {
         fputs("Brainfuck source file is invalid.", stderr);
-        exit(EX_DATAERR);
+        return EX_DATAERR;
     }
 
     // iterate over source file symbols, performing different operations for each
