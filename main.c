@@ -35,7 +35,7 @@ const SourceFile readSourceFile(const char* filePath) {
     }
 
     if(fread( buffer , lSize, 1 , fp) != 1) {
-        close(fp);
+        fclose(fp);
         free(buffer);
         fputs("entire read fails",stderr);
         exit(EX_IOERR);
