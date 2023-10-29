@@ -1,19 +1,20 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdbool.h>
 #include <sysexits.h>
 
+#define BRAINFUCK_MAX_TAPE_SIZE 30000
+
 typedef struct {
     char* contents;
-    long size;
+    size_t size;
 } SourceFile;
 
 // load file from filepath into SourceFile struct
 const SourceFile readSourceFile(const char* filePath) {
     FILE* fp;
-    long lSize;
+    size_t lSize;
     char *buffer;
     
     fp = fopen (filePath , "rb");
@@ -51,8 +52,8 @@ const SourceFile readSourceFile(const char* filePath) {
 
 // check there are valid parenthesis
 bool checkSourceFileValidity(const SourceFile* sourceFile){
-    uint16_t stack = 0;
-    for (uint16_t i = 0; i < sourceFile->size; i++){
+    size_t stack = 0;
+    for (size_t i = 0; i < sourceFile->size; i++){
         uint8_t symbol = sourceFile->contents[i];
         if (symbol == '[') {
             stack++;
@@ -78,14 +79,13 @@ int main(int argc, char *argv[]) {
     const char* pathToSource = argv[1];
 
     // Initial 30kb tape of memory
-    uint8_t tape[30000];
-    memset(tape, 0, 30000);
+    uint8_t tape[BRAINFUCK_MAX_TAPE_SIZE] = {0};
 
     // Index of current memory cell
-    uint16_t tapePosition = 0;
+    size_t tapePosition = 0;
 
     // Keeps track of nested braces
-    uint16_t braceCount = 0;
+    size_t braceCount = 0;
 
     // Load source file into a char array
     SourceFile sourceFile = readSourceFile(pathToSource);
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
     }
 
     // iterate over source file symbols, performing different operations for each
-    uint16_t i = 0;
+    size_t i = 0;
     while(i < sourceFile.size) {
         uint8_t symbol = sourceFile.contents[i];
         switch (symbol) {
