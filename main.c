@@ -2,7 +2,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <sysexits.h>
+
+#ifdef __unix__
+    #include <sysexits.h>
+    #define IO_ERR EX_IOERR
+    #define USAGE_ERR EX_USAGE
+    #define DATA_ERR EX_DATAERR
+#else
+    #define IO_ERR EXIT_FAILURE
+    #define USAGE_ERR EXIT_FAILURE
+    #define DATA_ERR EXIT_FAILURE
+#endif
 
 #define BRAINFUCK_MAX_TAPE_SIZE 30000
 
@@ -21,7 +31,7 @@ const SourceFile readSourceFile(const char* filePath) {
 
     if(!fp) {
         perror(filePath);
-        exit(EX_IOERR);
+        exit(IO_ERR);
     }
 
     fseek(fp,0L,SEEK_END);
@@ -32,14 +42,14 @@ const SourceFile readSourceFile(const char* filePath) {
     if(!buffer) {
         fclose(fp);
         fputs("memory alloc fails",stderr);
-        exit(EX_IOERR);
+        exit(IO_ERR);
     }
 
     if(fread( buffer , lSize, 1 , fp) != 1) {
         fclose(fp);
         free(buffer);
         fputs("entire read fails",stderr);
-        exit(EX_IOERR);
+        exit(IO_ERR);
     }
     fclose(fp);
 
@@ -73,7 +83,7 @@ int main(int argc, char *argv[]) {
     // Get source file from command line args
     if (argc < 2) {
         puts("Error! Expected path to source file as command line argument.");
-        return EX_USAGE;
+        return USAGE_ERR;
     }
 
     const char* pathToSource = argv[1];
@@ -93,7 +103,7 @@ int main(int argc, char *argv[]) {
     // Check the source file is valid brainfuck code
     if (!checkSourceFileValidity(&sourceFile)) {
         fputs("Brainfuck source file is invalid.", stderr);
-        return EX_DATAERR;
+        return DATA_ERR;
     }
 
     // iterate over source file symbols, performing different operations for each
