@@ -60,8 +60,15 @@ const SourceFile readSourceFile(const char* filePath) {
     return sourceFile;
 }
 
-// check there are valid parenthesis
+// check validity of a brainfuck program
 bool checkSourceFileValidity(const SourceFile* sourceFile){
+    /* 
+    Keep track of how many lines we have scanned and the amount of chars in those lines
+    */
+    size_t newlines = 0;
+    size_t lineCharsScanned = 0;
+
+    // Using an integer to simulate a stack popping and emplacing when we find square  brackets
     size_t stack = 0;
     for (size_t i = 0; i < sourceFile->size; i++){
         uint8_t symbol = sourceFile->contents[i];
@@ -70,13 +77,23 @@ bool checkSourceFileValidity(const SourceFile* sourceFile){
         }
         else if (symbol == ']'){
             // if stack is already empty, can't have a closing bracket
+            fprintf(stderr, "Line %zu: Character %zu :: Closing bracket found with no opening bracket!\n", newlines + 1, i - lineCharsScanned + 1);
             if (stack == 0) {
                 return false;
             }
             stack--;
         }
+        else if (symbol == '\n'){
+            newlines++;
+            lineCharsScanned = i;
+        }
     }
-    return stack == 0;
+
+    bool valid = stack == 0;
+    if (!valid) {
+        fprintf(stderr, "Found %zu opening brackets without closing brackets!\n", stack);
+    }
+    return valid;
 }
 
 int main(int argc, char *argv[]) {
@@ -102,7 +119,6 @@ int main(int argc, char *argv[]) {
 
     // Check the source file is valid brainfuck code
     if (!checkSourceFileValidity(&sourceFile)) {
-        fputs("Brainfuck source file is invalid.", stderr);
         return DATA_ERR;
     }
 
