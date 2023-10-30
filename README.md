@@ -6,3 +6,8 @@ I haven't bothered with any makefiles or cmake files as this project is a single
 ```c
 gcc main.cpp -o brainfuck -std=c99 // Must be greater than C99
 ```  
+
+# Usage
+```c
+./brainfuck path/to/file
+``` 
