@@ -57,6 +57,7 @@ const SourceFile readSourceFile(const char* filePath) {
         buffer,
         lSize
     };
+    
     return sourceFile;
 }
 
