@@ -78,8 +78,8 @@ bool checkSourceFileValidity(const SourceFile* sourceFile){
         }
         else if (symbol == ']'){
             // if stack is already empty, can't have a closing bracket
-            fprintf(stderr, "Line %zu: Character %zu :: Closing bracket found with no opening bracket!\n", newlines + 1, i - lineCharsScanned + 1);
             if (stack == 0) {
+                fprintf(stderr, "Line %zu: Character %zu :: Closing bracket found with no opening bracket!\n", newlines + 1, i - lineCharsScanned + 1);
                 return false;
             }
             stack--;
