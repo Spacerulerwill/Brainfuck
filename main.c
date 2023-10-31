@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdbool.h>
+#include <inttypes.h>
+#include <errno.h>
 
 #ifdef __unix__
     #include <sysexits.h>
@@ -14,7 +17,7 @@
     #define DATA_ERR EXIT_FAILURE
 #endif
 
-#define BRAINFUCK_MAX_TAPE_SIZE 30000
+#define DEFAULT_TAPE_SIZE 30000
 
 typedef struct {
     char* contents;
@@ -79,7 +82,7 @@ bool checkSourceFileValidity(const SourceFile* sourceFile){
         else if (symbol == ']'){
             // if stack is already empty, can't have a closing bracket
             if (stack == 0) {
-                fprintf(stderr, "Line %zu: Character %zu :: Closing bracket found with no opening bracket!\n", newlines + 1, i - lineCharsScanned + 1);
+                fprintf(stderr, "Line %zu: Character %zu :: Closing bracket found with no opening bracket!", newlines + 1, i - lineCharsScanned + 1);
                 return false;
             }
             stack--;
@@ -92,7 +95,7 @@ bool checkSourceFileValidity(const SourceFile* sourceFile){
 
     bool valid = stack == 0;
     if (!valid) {
-        fprintf(stderr, "Found %zu opening brackets without closing brackets!\n", stack);
+        fprintf(stderr, "Found %zu opening brackets without closing brackets!", stack);
     }
     return valid;
 }
@@ -104,10 +107,28 @@ int main(int argc, char *argv[]) {
         return USAGE_ERR;
     }
 
+    /* 
+    if we have 3 arguments, 3rd argument will be the tape size in bytes
+    we will try and parse it as a 
+    */
+    size_t tapeSize;
+    if (argc == 3) {
+        char* str = argv[2];
+        char* end;
+        tapeSize = (size_t)strtoumax(str, &end, 10);
+        if (errno == ERANGE || tapeSize == 0) {
+            fprintf(stderr, "Tape size out of range. Tape size must be greater than 0 and less than or equal to %zu", SIZE_MAX);
+            return USAGE_ERR;
+        }
+    } else {
+        tapeSize = DEFAULT_TAPE_SIZE;
+    }
+
     const char* pathToSource = argv[1];
 
-    // Initial 30kb tape of memory
-    uint8_t tape[BRAINFUCK_MAX_TAPE_SIZE] = {0};
+    // Initial tape of memory and zero it all
+    uint8_t* tape = (uint8_t*)malloc(tapeSize * sizeof(uint8_t));
+    memset(tape, 0, tapeSize * sizeof(uint8_t));
 
     // Index of current memory cell
     size_t tapePosition = 0;
@@ -186,7 +207,8 @@ int main(int argc, char *argv[]) {
         ++i;
     }
 
-    // Free char array
+    // Free resources used
     free(sourceFile.contents);
+    free(tape);
     return EXIT_SUCCESS;
 }
