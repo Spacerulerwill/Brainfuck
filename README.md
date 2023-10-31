@@ -9,5 +9,5 @@ gcc main.cpp -o brainfuck -std=c99 // Must be greater than C99
 
 # Usage
 ```c
-./brainfuck path/to/file
+./brainfuck path/to/file tapesize
 ``` 
