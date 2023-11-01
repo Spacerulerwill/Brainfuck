@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include <errno.h>
 
+// Create macros depending on operating system for exit failiure
 #ifdef __unix__
     #include <sysexits.h>
     #define IO_ERR EX_IOERR
@@ -20,6 +21,11 @@
     #define DATA_ERR EXIT_FAILURE
 #endif
 
+// Terminal Colors
+#define RED   "\x1B[31m"
+#define YEL   "\x1B[33m"
+#define RESET "\x1B[0m"
+
 #define DEFAULT_TAPE_SIZE 30000
 
 typedef struct {
@@ -27,47 +33,56 @@ typedef struct {
     size_t size;
 } SourceFile;
 
-// load file from filepath into SourceFile struct
+// Load file from filepath into SourceFile struct
 SourceFile readSourceFile(const char* filePath) {
     FILE* fp;
-    size_t lSize;
-    char *buffer;
-    
-    fp = fopen (filePath , "rb");
+    size_t size;
+    char  *buffer;
 
-    if(!fp) {
-        perror(filePath);
-        exit(IO_ERR);
+    // try open the file
+    errno = 0;
+    fp = fopen(filePath, "rb");
+    if (!fp) {
+        errno ? perror(filePath) : (void) fprintf(stderr, RED "Error :: failed to open %s.\n" RESET, filePath);
+        exit(IO_ERR); 
     }
 
-    fseek(fp,0L,SEEK_END);
-    lSize = ftell(fp);
+    // Determine file size
+    fseek(fp,0L,SEEK_END); // UNDEFINED BEHAVIOUR MUST FIX
+    long lsize = ftell(fp);
+    if (lsize == -1L){
+        perror(NULL);
+        exit(EXIT_FAILURE);
+    }
+    size = (size_t)lsize;
     rewind(fp);
 
-    buffer = calloc(1, lSize+1);
+    // Allocate enough memory for the char buffer
+    buffer = calloc(1, size+1);
     if(!buffer) {
         fclose(fp);
-        fputs("memory alloc fails",stderr);
+        fputs(RED "Source file memory allocation fails!\n" RESET,stderr);
         exit(IO_ERR);
     }
 
-    if(fread( buffer , lSize, 1 , fp) != 1) {
+    // Read file into newly allocated char buffer
+    if(fread(buffer, size, 1, fp) != 1) {
         fclose(fp);
         free(buffer);  
-        fputs("entire read fails",stderr);
+        fputs(RED "Entire source file read fails!\n" RESET,stderr);
         exit(IO_ERR);
     }
     fclose(fp);
 
     SourceFile sourceFile = {
         buffer,
-        lSize
+        size
     };
     
     return sourceFile;
 }
 
-// check validity of a brainfuck program
+// Check validity of a brainfuck program (ensure square brackets match up)
 bool checkSourceFileValidity(const SourceFile* sourceFile){
     /* 
     Keep track of how many lines we have scanned and the amount of chars in those lines
@@ -78,14 +93,14 @@ bool checkSourceFileValidity(const SourceFile* sourceFile){
     // Using an integer to simulate a stack popping and emplacing brackets when we find them
     size_t stack = 0;
     for (size_t i = 0; i < sourceFile->size; i++){
-        uint8_t symbol = sourceFile->contents[i];
+        uint8_t symbol = (uint8_t)sourceFile->contents[i];
         if (symbol == '[') {
             stack++;
         }
         else if (symbol == ']'){
             // if stack is already empty, can't have a closing bracket
             if (stack == 0) {
-                fprintf(stderr, "Line %zu: Character %zu :: Closing bracket found with no opening bracket!", newlines + 1, i - lineCharsScanned + 1);
+                fprintf(stderr, RED "Line %zu: Character %zu :: Closing bracket found with no opening bracket!\n" RESET, newlines + 1, i - lineCharsScanned + 1);
                 return false;
             }
             stack--;
@@ -98,7 +113,7 @@ bool checkSourceFileValidity(const SourceFile* sourceFile){
 
     bool valid = stack == 0;
     if (!valid) {
-        fprintf(stderr, "Found %zu opening brackets without closing brackets!", stack);
+        fprintf(stderr, RED "Found %zu opening brackets without closing brackets!\n" RESET, stack);
     }
     return valid;
 }
@@ -106,33 +121,23 @@ bool checkSourceFileValidity(const SourceFile* sourceFile){
 int main(int argc, char *argv[]) {
     // Get source file from command line args
     if (argc < 2) {
-        puts("Error! Expected path to source file as command line argument.");
+        fputs(RED "Error :: Expected path to source file as command line argument.\n" RESET, stderr);
         return USAGE_ERR;
     }
 
-    /* 
-    if we have 3 arguments, 3rd argument will be the tape size in bytes
-    we will try and parse it as a size_t
-    */
-    size_t tapeSize;
-    if (argc == 3) {
-        char* str = argv[2];
-        char* end;
-        tapeSize = (size_t)strtoumax(str, &end, 10);
-        if (errno == ERANGE || tapeSize == 0) {
-            fprintf(stderr, "Tape size out of range. Tape size must be greater than 0 and less than or equal to %zu", SIZE_MAX);
-            return USAGE_ERR;
-        }
-    } else {
-        tapeSize = DEFAULT_TAPE_SIZE;
-    }
+    size_t tapeSize = DEFAULT_TAPE_SIZE;
 
     const char* pathToSource = argv[1];
 
     // Initial tape of memory and zero it all
-    uint8_t* tape = (uint8_t*)calloc(tapeSize, sizeof(uint8_t));
+    errno = 0;
+    uint8_t* tape = calloc(tapeSize, sizeof(uint8_t));
+    if (!tape) {
+        fprintf(stderr, RED "Error :: Failed to allocate %zu bytes of tape memory!\n" RESET, tapeSize);
+        return EXIT_FAILURE;
+    }
 
-    // Index of current memory cell
+    // Current memory cell index
     size_t tapePosition = 0;
 
     // Keeps track of nested braces
@@ -151,7 +156,7 @@ int main(int argc, char *argv[]) {
     // iterate over source file symbols, performing different operations for each
     size_t i = 0;
     while(i < sourceFile.size) {
-        uint8_t symbol = sourceFile.contents[i];
+        uint8_t symbol = (uint8_t)sourceFile.contents[i];
         switch (symbol) {
             case '>': {
                 tapePosition++;
@@ -162,15 +167,33 @@ int main(int argc, char *argv[]) {
                 break;
             } 
             case '+': {
-                tape[tapePosition]++;
+                #ifdef NDEBUG
+                    tape[tapePosition]++;
+                #else
+                    if (tape[tapePosition] == UINT8_MAX) {
+                        tape[tapePosition] = 0;
+                        fputs(YEL "Warning :: Integer overflow occured!\n" RESET, stderr);
+                    }else{
+                        tape[tapePosition]++;
+                    }
+                #endif
                 break;
             }
             case '-': {
-                tape[tapePosition]--;
+                #ifdef NDEBUG
+                    tape[tapePosition]--;
+                #else
+                    if (tape[tapePosition] == 0) {
+                        tape[tapePosition] = UINT8_MAX;
+                        fputs(YEL "Warning :: Integer underflow occured!\n" RESET, stderr);
+                    }else{
+                        tape[tapePosition]--;
+                    }
+                #endif
                 break;
             }
             case ',': {
-                tape[tapePosition] = getchar();
+                tape[tapePosition] = (uint8_t)getchar(); // TODO: Should we warn user about truncation?
                 break;
             }
             case '.': {
