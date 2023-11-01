@@ -1,3 +1,4 @@
+// So we can use fopen on windows platforms
 #define _CRT_SECURE_NO_DEPRECATE
 
 #include <stdio.h>
@@ -52,7 +53,7 @@ const SourceFile readSourceFile(const char* filePath) {
 
     if(fread( buffer , lSize, 1 , fp) != 1) {
         fclose(fp);
-        free(buffer);
+        free(buffer);  
         fputs("entire read fails",stderr);
         exit(IO_ERR);
     }
@@ -74,7 +75,7 @@ bool checkSourceFileValidity(const SourceFile* sourceFile){
     size_t newlines = 0;
     size_t lineCharsScanned = 0;
 
-    // Using an integer to simulate a stack popping and emplacing when we find square  brackets
+    // Using an integer to simulate a stack popping and emplacing brackets when we find them
     size_t stack = 0;
     for (size_t i = 0; i < sourceFile->size; i++){
         uint8_t symbol = sourceFile->contents[i];
@@ -111,7 +112,7 @@ int main(int argc, char *argv[]) {
 
     /* 
     if we have 3 arguments, 3rd argument will be the tape size in bytes
-    we will try and parse it as a 
+    we will try and parse it as a size_t
     */
     size_t tapeSize;
     if (argc == 3) {
