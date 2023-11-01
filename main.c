@@ -130,8 +130,7 @@ int main(int argc, char *argv[]) {
     const char* pathToSource = argv[1];
 
     // Initial tape of memory and zero it all
-    uint8_t* tape = (uint8_t*)malloc(tapeSize * sizeof(uint8_t));
-    memset(tape, 0, tapeSize * sizeof(uint8_t));
+    uint8_t* tape = (uint8_t*)calloc(tapeSize, sizeof(uint8_t));
 
     // Index of current memory cell
     size_t tapePosition = 0;
