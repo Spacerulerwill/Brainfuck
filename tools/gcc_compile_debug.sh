@@ -1,0 +1,1 @@
+gcc -std=c99 -fPIC -gdwarf-4 -Wall -Wextra -Wwrite-strings -Wno-parentheses -Wpedantic -Warray-bounds -Wconversion  -Wstrict-prototypes -fanalyzer brainfuck.c -o brainfuck
