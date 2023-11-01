@@ -43,7 +43,11 @@ SourceFile readSourceFile(const char* filePath) {
     errno = 0;
     fp = fopen(filePath, "rb");
     if (!fp) {
-        errno ? perror(filePath) : (void) fprintf(stderr, RED "Error :: failed to open %s.\n" RESET, filePath);
+        if (errno) {
+            fprintf(stderr, RED "%s: %s" RESET, strerror(errno), filePath);
+        } else {
+            fprintf(stderr, RED "Error :: failed to open %s.\n" RESET, filePath);
+        }
         exit(IO_ERR); 
     }
 
@@ -51,7 +55,7 @@ SourceFile readSourceFile(const char* filePath) {
     fseek(fp,0L,SEEK_END); // UNDEFINED BEHAVIOUR MUST FIX
     long lsize = ftell(fp);
     if (lsize == -1L){
-        perror(NULL);
+        fprintf(stderr, RED "%s" RESET, strerror(errno));
         exit(EXIT_FAILURE);
     }
     size = (size_t)lsize;
@@ -100,7 +104,7 @@ bool checkSourceFileValidity(const SourceFile* sourceFile){
         else if (symbol == ']'){
             // if stack is already empty, can't have a closing bracket
             if (stack == 0) {
-                fprintf(stderr, RED "Line %zu: Character %zu :: Closing bracket found with no opening bracket!\n" RESET, newlines + 1, i - lineCharsScanned + 1);
+                fprintf(stderr, RED "Program validiation error (Line %zu Character %zu) :: Closing bracket found with no opening bracket!\n" RESET, newlines + 1, i - lineCharsScanned + 1);
                 return false;
             }
             stack--;
@@ -113,7 +117,7 @@ bool checkSourceFileValidity(const SourceFile* sourceFile){
 
     bool valid = stack == 0;
     if (!valid) {
-        fprintf(stderr, RED "Found %zu opening brackets without closing brackets!\n" RESET, stack);
+        fprintf(stderr, RED "Program validiation error :: Found %zu opening brackets without closing brackets!\n" RESET, stack);
     }
     return valid;
 }
@@ -125,15 +129,30 @@ int main(int argc, char *argv[]) {
         return USAGE_ERR;
     }
 
-    size_t tapeSize = DEFAULT_TAPE_SIZE;
+    size_t tapeSize;
+    if (argc == 3) {
+        char* str = argv[2];
+        char* end;
+        tapeSize = (size_t)strtoumax(str, &end, 10);
+        if (errno) {
+            fprintf(stderr, RED "Error :: %s :: Input must be a number x: 0 < x < %tu.\n" RESET, strerror(errno), SIZE_MAX);
+            return USAGE_ERR;
+        }
+        else if (tapeSize == 0) {
+            fprintf(stderr, RED "Error :: Cannot allocate 0 bytes of tape!\n" RESET);
+            return USAGE_ERR;
+        }
+    }else{
+        tapeSize = DEFAULT_TAPE_SIZE;
+    }
 
     const char* pathToSource = argv[1];
 
     // Initial tape of memory and zero it all
-    errno = 0;
+    printf("%tu\n", tapeSize);
     uint8_t* tape = calloc(tapeSize, sizeof(uint8_t));
     if (!tape) {
-        fprintf(stderr, RED "Error :: Failed to allocate %zu bytes of tape memory!\n" RESET, tapeSize);
+        fprintf(stderr, RED "Error :: Failed allocate %tu bytes of tape. (Not enough memory available)\n" RESET, tapeSize);
         return EXIT_FAILURE;
     }
 
@@ -172,7 +191,7 @@ int main(int argc, char *argv[]) {
                 #else
                     if (tape[tapePosition] == UINT8_MAX) {
                         tape[tapePosition] = 0;
-                        fputs(YEL "Warning :: Integer overflow occured!\n" RESET, stderr);
+                        fputs(YEL "Warning :: Runtime integer overflow!\n" RESET, stderr);
                     }else{
                         tape[tapePosition]++;
                     }
@@ -185,7 +204,7 @@ int main(int argc, char *argv[]) {
                 #else
                     if (tape[tapePosition] == 0) {
                         tape[tapePosition] = UINT8_MAX;
-                        fputs(YEL "Warning :: Integer underflow occured!\n" RESET, stderr);
+                        fputs(YEL "Warning :: Runtime integer underflow!\n" RESET, stderr);
                     }else{
                         tape[tapePosition]--;
                     }
