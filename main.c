@@ -28,7 +28,7 @@ typedef struct {
 } SourceFile;
 
 // load file from filepath into SourceFile struct
-const SourceFile readSourceFile(const char* filePath) {
+SourceFile readSourceFile(const char* filePath) {
     FILE* fp;
     size_t lSize;
     char *buffer;
