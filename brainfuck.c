@@ -149,7 +149,6 @@ int main(int argc, char *argv[]) {
     const char* pathToSource = argv[1];
 
     // Initial tape of memory and zero it all
-    printf("%tu\n", tapeSize);
     uint8_t* tape = calloc(tapeSize, sizeof(uint8_t));
     if (!tape) {
         fprintf(stderr, RED "Error :: Failed allocate %tu bytes of tape. (Not enough memory available)\n" RESET, tapeSize);
