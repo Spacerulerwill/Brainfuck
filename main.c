@@ -143,6 +143,8 @@ int main(int argc, char *argv[]) {
 
     // Check the source file is valid brainfuck code
     if (!checkSourceFileValidity(&sourceFile)) {
+        free(sourceFile.contents);
+        free(tape);
         return DATA_ERR;
     }
 
