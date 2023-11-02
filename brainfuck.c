@@ -77,13 +77,8 @@ SourceFile readSourceFile(const char* filePath) {
         exit(IO_ERR);
     }
     fclose(fp);
-
-    SourceFile sourceFile = {
-        buffer,
-        size
-    };
     
-    return sourceFile;
+    return (SourceFile) { buffer, size };
 }
 
 // Check validity of a brainfuck program (ensure square brackets match up)
