@@ -28,13 +28,17 @@
 
 #define DEFAULT_TAPE_SIZE 30000
 
-typedef struct {
+struct SourceFile {
     char* contents;
     size_t size;
 } SourceFile;
 
+void sourcefile_free(struct SourceFile* sourcefile) {
+    free(sourcefile->contents);
+}
+
 // Load file from filepath into SourceFile struct
-SourceFile readSourceFile(const char* filePath) {
+struct SourceFile readSourceFile(const char* filePath) {
     FILE* fp;
     size_t size;
     char  *buffer;
@@ -78,11 +82,11 @@ SourceFile readSourceFile(const char* filePath) {
     }
     fclose(fp);
     
-    return (SourceFile) { buffer, size };
+    return (struct SourceFile) { buffer, size };
 }
 
 // Check validity of a brainfuck program (ensure square brackets match up)
-bool checkSourceFileValidity(const SourceFile* sourceFile){
+bool checkSourceFileValidity(const struct SourceFile* sourceFile){
     /* 
     Keep track of how many lines we have scanned and the amount of chars in those lines
     */
@@ -157,7 +161,7 @@ int main(int argc, char *argv[]) {
     size_t braceCount = 0;
 
     // Load source file into a char array
-    SourceFile sourceFile = readSourceFile(pathToSource);
+    struct SourceFile sourceFile = readSourceFile(pathToSource);
 
     // Check the source file is valid brainfuck code
     if (!checkSourceFileValidity(&sourceFile)) {
@@ -248,7 +252,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Free resources used
-    free(sourceFile.contents);
+    sourcefile_free(&sourceFile);
     free(tape);
     return EXIT_SUCCESS;
 }
